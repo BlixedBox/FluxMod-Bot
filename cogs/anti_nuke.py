@@ -9,6 +9,7 @@ from fluxer import Cog
 from utils.delete_after import delete_after
 from utils.datawrapper import DataWrapper
 from utils.log import log
+from utils.embed_builder import EmbedBuilder
 from utils.timeout import FluxerTimeout
 
 
@@ -160,10 +161,7 @@ class AntiNukeCog(Cog):
 
             if channel is None:
                 try:
-                    if numeric_id is not None:
-                        channel = await self.bot.fetch_channel(numeric_id)
-                    else:
-                        channel = await self.bot.fetch_channel(normalized_id)
+                    channel = await self.bot.fetch_channel(normalized_id)
                 except Exception:
                     channel = None
 
@@ -190,10 +188,12 @@ class AntiNukeCog(Cog):
         return None
 
     async def _get_settings(self, guild_id: int) -> dict[str, Any]:
-        config = await self.datawrapper.get_guild_config(guild_id) or {}
-        nested_automod = config.get("automod_settings") if isinstance(config.get("automod_settings"), dict) else {}
+        raw_config = await self.datawrapper.get_guild_config(guild_id) or {}
+        config: dict[str, Any] = raw_config if isinstance(raw_config, dict) else {}
+        nested_value = config.get("automod_settings")
+        nested_automod: dict[str, Any] = nested_value if isinstance(nested_value, dict) else {}
 
-        compact = {}
+        compact: dict[str, Any] = {}
         for candidate in (
             config.get("antinuke"),
             nested_automod.get("antinuke"),
@@ -448,11 +448,19 @@ class AntiNukeCog(Cog):
                         "error",
                     )
 
-        await channel.send(
-            f"{mention_content} Potential nuke pattern detected: "
-            f"{message.author.mention} ran `{len(window)}` sensitive commands "
-            f"within `{window_seconds}` seconds."
+        embed = EmbedBuilder().build_embed(
+            title="Potential Nuke Detected",
+            description=(
+                f"User {message.author.mention} (`{author_id}`) triggered the anti-nuke protection by running "
+                f"`{len(window)}` sensitive commands within `{window_seconds}` seconds."
+            ),
+            color=0xFF0000
         )
+
+        await channel.send(
+            f"{mention_content}", embed=embed
+        )
+        
 
 
 async def setup(bot: fluxer.Bot):

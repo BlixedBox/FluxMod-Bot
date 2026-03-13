@@ -143,10 +143,7 @@ class AntiSpamCog(Cog):
 
             if channel is None:
                 try:
-                    if numeric_id is not None:
-                        channel = await self.bot.fetch_channel(numeric_id)
-                    else:
-                        channel = await self.bot.fetch_channel(normalized_id)
+                    channel = await self.bot.fetch_channel(normalized_id)
                 except Exception:
                     channel = None
 
@@ -173,10 +170,12 @@ class AntiSpamCog(Cog):
         return None
 
     async def _get_settings(self, guild_id: int) -> dict[str, Any]:
-        config = await self.datawrapper.get_guild_config(guild_id) or {}
-        nested_automod = config.get("automod_settings") if isinstance(config.get("automod_settings"), dict) else {}
+        raw_config = await self.datawrapper.get_guild_config(guild_id) or {}
+        config: dict[str, Any] = raw_config if isinstance(raw_config, dict) else {}
+        nested_value = config.get("automod_settings")
+        nested_automod: dict[str, Any] = nested_value if isinstance(nested_value, dict) else {}
 
-        compact = {}
+        compact: dict[str, Any] = {}
         for candidate in (
             config.get("antispam"),
             nested_automod.get("antispam"),
@@ -391,6 +390,7 @@ class AntiSpamCog(Cog):
             return
         
         warning_channel = getattr(message, "channel", None)
+        channel_mention = getattr(warning_channel, "mention", "this channel")
 
         mention_content = " ".join([f"<@&{role_id}>" for role_id in settings.get("staff_role_ids", [])])
 
@@ -401,7 +401,7 @@ class AntiSpamCog(Cog):
 
         alert_text = EmbedBuilder().create_embed(
             title="Anti-Spam Alert",
-            description=f"User {message.author} (`{author_id}`) triggered anti-spam in {message.channel.mention}.\n"
+            description=f"User {message.author.mention} (`{author_id}`) triggered anti-spam in {channel_mention}.\n"
             f"- Messages in window: `{len(window)}`\n"
             f"- Timeframe: `{window_seconds}` seconds\n"
             f"- Message content: {message.content[:200] + ('...' if len(message.content) > 200 else '')}\n"
@@ -432,8 +432,9 @@ class AntiSpamCog(Cog):
                     )
 
         await alert_channel.send(embed=alert_text)
-        warning = await warning_channel.send(f"{mention_content} {warning_text}".strip())
-        await delete_after(warning, 6)
+        if warning_channel is not None and hasattr(warning_channel, "send"):
+            warning = await warning_channel.send(f"{mention_content} {warning_text}".strip())
+            await delete_after(warning, 6)
 
         
 

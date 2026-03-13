@@ -27,6 +27,9 @@ class InviteLockdown:
             f"{BASE_URL}/guilds/{guild_id}/invites"
         )
 
+        if not isinstance(invites, list):
+            return
+
         for invite in invites:
             await self._request(
                 "DELETE",
