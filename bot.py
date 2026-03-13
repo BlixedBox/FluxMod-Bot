@@ -16,6 +16,12 @@ if hasattr(intents, "message_content"):
     except Exception:
         pass
 
+if hasattr(intents, "members"):
+    try:
+        setattr(intents, "members", True)
+    except Exception:
+        pass
+
 client = fluxer.Bot(intents=intents, command_prefix='fm!', retry_forever=True)
 
 
