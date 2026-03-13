@@ -9,7 +9,7 @@ from fluxer import Cog
 from utils.delete_after import delete_after
 from utils.datawrapper import DataWrapper
 from utils.log import log
-from utils.embed_builder import EmbedBuilder
+from utils.embed_builder import EmbedBuilder, Colors
 from utils.timeout import FluxerTimeout
 
 
@@ -454,7 +454,7 @@ class AntiNukeCog(Cog):
                 f"User {message.author.mention} (`{author_id}`) triggered the anti-nuke protection by running "
                 f"`{len(window)}` sensitive commands within `{window_seconds}` seconds."
             ),
-            color=0xFF0000
+            color=Colors.error
         )
 
         await channel.send(

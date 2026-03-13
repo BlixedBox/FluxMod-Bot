@@ -1,5 +1,6 @@
 import fluxer
 from fluxer import Cog
+from utils.embed_builder import EmbedBuilder, Colors
 
 
 class HelpCog(Cog):
@@ -13,10 +14,10 @@ class HelpCog(Cog):
         if not isinstance(prefix, str) or not prefix:
             prefix = "fm!"
 
-        embed_help = fluxer.Embed(
-            title="FluxMod Command Help",
-            description="Current commands available in this bot.",
-            color=0x00BFFF,
+        embed_help = EmbedBuilder.build_embed(
+            "FluxMod Command Help",
+            "Current commands available in this bot.",
+            Colors.primary,
         )
 
         embed_help.add_field(

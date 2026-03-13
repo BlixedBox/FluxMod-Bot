@@ -2,7 +2,7 @@ import fluxer
 from datetime import datetime, timezone
 from fluxer import Cog
 
-from utils.embed_builder import EmbedBuilder
+from utils.embed_builder import EmbedBuilder, Colors
 
 
 class InfoCog(Cog):
@@ -43,7 +43,7 @@ class InfoCog(Cog):
         embed = EmbedBuilder().build_embed(
             title="FluxMod Information",
             description="A modular Fluxer bot built with Fluxer.py.",
-            color=0x00FF00
+            color=Colors.success
         )
 
         embed.add_field(name="Developer", value="UncleMelo", inline=False)
@@ -76,7 +76,7 @@ class InfoCog(Cog):
         embed = EmbedBuilder().build_embed(
             title="Pong!",
             description=f"System Latency: {system_latency}\nGateway Latency: {gateway_latency}",
-            color=0x00FF00
+            color=Colors.success
         )
 
         await ctx.send(embed=embed)

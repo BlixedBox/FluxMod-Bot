@@ -6,6 +6,7 @@ from typing import Any
 from utils.resolvers import resolve_channel_id, resolve_user_id
 from utils.datawrapper import DataWrapper
 from utils.delete_after import delete_after
+from utils.embed_builder import EmbedBuilder, Colors
 
 
 class ConfigsCog(Cog):
@@ -21,8 +22,8 @@ class ConfigsCog(Cog):
         except Exception:
             return 0
 
-    def _build_embed(self, title: str, description: str, color: int = 0x5865F2):
-        embed = fluxer.Embed(title=title, description=description, color=color)
+    def _build_embed(self, title: str, description: str, color: int = Colors.primary):
+        embed = EmbedBuilder.build_embed(title, description, color)
         embed.set_footer(text="FluxMod AutoMod Config")
         return embed
 
@@ -54,7 +55,7 @@ class ConfigsCog(Cog):
             embed=self._build_embed(
                 "Missing Permission",
                 f"You need `{label}` to use this command.",
-                0xFF0000,
+                Colors.error,
             )
         )
         await delete_after(warning_message, 10)
@@ -307,7 +308,7 @@ class ConfigsCog(Cog):
         regex_pattern = str(rule.get("pattern", "")).strip()
         enabled = bool(rule.get("enabled", False))
 
-        embed = fluxer.Embed(title="AutoMod Configuration", color=0x00FF00)
+        embed = EmbedBuilder.build_embed("AutoMod Configuration", "", Colors.success)
         embed.add_field(name="Status", value="Enabled" if enabled else "Disabled", inline=False)
         embed.add_field(name="Log Channel", value=f"<#{log_channel_id}>" if log_channel_id else "Not set", inline=False)
         embed.add_field(name="Exempt Channels", value=", ".join(f"<#{cid}>" for cid in exempt_channels) if exempt_channels else "None", inline=False)

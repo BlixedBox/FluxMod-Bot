@@ -3,7 +3,7 @@ import re
 import asyncio
 from typing import Any
 
-from utils.embed_builder import EmbedBuilder
+from utils.embed_builder import EmbedBuilder, Colors
 from utils.datawrapper import DataWrapper
 from utils.delete_after import delete_after
 from utils.log import log
@@ -383,7 +383,7 @@ class AutoModCog(Cog):
                 f"Guild: `{guild_id}`\n"
                 f"Configured Channel: <#{channel_id}> (`{channel_id}`)"
             ),
-            color=0x00AAFF,
+            color=Colors.primary,
         )
 
         sent = await self.send_automod_log(guild, embed)
@@ -505,7 +505,7 @@ class AutoModCog(Cog):
                         f"**Content:** {highlighted_content or message.content}\n"
                         f"**Time:** <t:{int(message.created_at.timestamp())}:F>"
                     ),
-                    color=0xFF0000,
+                    color=Colors.error,
                 )
                 avatar = getattr(message.author, "display_avatar", None)
                 avatar_url = getattr(avatar, "url", None)
