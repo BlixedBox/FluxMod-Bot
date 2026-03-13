@@ -1,5 +1,17 @@
 import fluxer
 
+
+class Colors:
+    """FluxCore theme root colors."""
+    primary   = 0x2EA2FF
+
+    # Status
+    success  = 0x23B481
+    warning  = 0xF4B74A
+    error    = 0xFF6F88
+
+
+
 class EmbedBuilder:
     @staticmethod
     def build_embed(title: str, description: str, color: int) -> fluxer.Embed:
@@ -9,16 +21,16 @@ class EmbedBuilder:
     # Preset colors
     @staticmethod
     def success_embed(title: str, description: str) -> fluxer.Embed:
-        return EmbedBuilder.build_embed(title, description, 0x28A745)
+        return EmbedBuilder.build_embed(title, description, Colors.success)
     @staticmethod
     def error_embed(title: str, description: str) -> fluxer.Embed:
-        return EmbedBuilder.build_embed(title, description, 0xDC3545)
+        return EmbedBuilder.build_embed(title, description, Colors.error)
     @staticmethod
     def info_embed(title: str, description: str) -> fluxer.Embed:
-        return EmbedBuilder.build_embed(title, description, 0x17A2B8)
+        return EmbedBuilder.build_embed(title, description, Colors.primary)
     @staticmethod
     def warning_embed(title: str, description: str) -> fluxer.Embed:
-        return EmbedBuilder.build_embed(title, description, 0xFFC107)
+        return EmbedBuilder.build_embed(title, description, Colors.warning)
     
 
     #User-friendly method to create embeds with optional fields
@@ -26,7 +38,7 @@ class EmbedBuilder:
     def create_embed(
         title: str,
         description: str,
-        color: int = 0x5865F2,
+        color: int = Colors.primary,
         footer: str | None = None,
         thumbnail_url: str | None = None,
         image_url: str | None = None,
@@ -43,7 +55,7 @@ class EmbedBuilder:
     #usage examples
 
     """
-    basic_embed = EmbedBuilder.build_embed("Hello", "This is a basic embed", 0x5865F2)
+    basic_embed = EmbedBuilder.build_embed("Hello", "This is a basic embed", Colors.primary)
     success_embed = EmbedBuilder.success_embed("Success!", "Your action was successful.")
     error_embed = EmbedBuilder.error_embed("Error!", "Something went wrong.")
     info_embed = EmbedBuilder.info_embed("Info", "This is some information.")
@@ -51,7 +63,7 @@ class EmbedBuilder:
     custom_embed = EmbedBuilder.create_embed(
         title="Custom Embed",
         description="This embed has a thumbnail and footer.",
-        color=0xFF5733,
+        color=Colors.error,
         footer="This is the footer",
         thumbnail_url="https://example.com/thumbnail.png",
         image_url="https://example.com/image.png"

@@ -11,7 +11,7 @@ from utils.delete_after import delete_after
 from utils.datawrapper import DataWrapper
 from utils.log import log
 from utils.timeout import FluxerTimeout
-from utils.embed_builder import EmbedBuilder
+from utils.embed_builder import EmbedBuilder, Colors
 
 class AntiRaidCog(Cog):
     _LEGACY_TOP_LEVEL_KEYS = {
@@ -475,7 +475,7 @@ class AntiRaidCog(Cog):
                 f"**Latest join:** {member_mention}\n"
                 f"**Action taken:** {'Timeout applied' if settings.get('timeout_enabled', True) else 'No timeout'}"
             ),
-            color=0xFF0000
+            color=Colors.error
         )
 
         await channel.send(
