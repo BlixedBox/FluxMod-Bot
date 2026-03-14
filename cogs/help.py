@@ -22,33 +22,13 @@ class HelpCog(Cog):
 
         embed_help.add_field(
             name="AutoMod Configuration",
-            value=(
-                f"`{prefix}set_automod_logs <#channel|channel_id>`\n"
-                "Set the AutoMod log channel.\n\n"
-                f"`{prefix}set_exempt_channels <#ch1>, <#ch2>, ...`\n"
-                "Set channels that bypass AutoMod checks.\n\n"
-                f"`{prefix}set_exempt_roles <@&role1>, <@&role2>, ...`\n"
-                "Set roles that bypass AutoMod checks.\n\n"
-                f"`{prefix}set_keywords <word1, word2, ...>`\n"
-                "Set blocked keyword patterns (`*` wildcard supported).\n\n"
-                f"`{prefix}set_allowed_keywords <word1, word2, ...>`\n"
-                "Set allowed keyword patterns that override blocked matches.\n\n"
-                f"`{prefix}set_regex_patterns <pattern1, pattern2, ...>`\n"
-                "Set blocked regex patterns.\n\n"
-                f"`{prefix}set_exempt_users <@user1>, <@user2>, ...`\n"
-                "Set users that bypass AutoMod checks."
-            ),
+            value=("For Automod configuration, please visit the dashboard at [https://fluxmod.app](https://fluxmod.app)"),
             inline=False,
         )
 
         embed_help.add_field(
             name="AutoMod Status",
-            value=(
-                f"`{prefix}toggle_automod`\n"
-                "Enable or disable AutoMod for this server.\n\n"
-                f"`{prefix}view_automod_rules`\n"
-                "View current AutoMod settings and active values."
-            ),
+            value=("For Automod status, please visit the dashboard at [https://fluxmod.app](https://fluxmod.app)"),
             inline=False,
         )
 

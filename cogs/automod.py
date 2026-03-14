@@ -361,40 +361,6 @@ class AutoModCog(Cog):
             pass
 
         return False
-
-    @Cog.command(name="test")
-    async def test_automod_log(self, ctx: fluxer.Message):
-        """Send a test message to the configured AutoMod log channel."""
-        guild = getattr(ctx, "guild", None)
-        guild_id = getattr(guild, "id", None)
-        if guild_id is None or guild is None:
-            await ctx.reply("This command can only be used in a server.")
-            return
-
-        channel_id = await self._resolve_automod_log_channel_id(guild_id)
-        if not channel_id:
-            await ctx.reply("AutoMod log channel is not configured. Use `fm!set_automod_logs #channel` first.")
-            return
-
-        embed = EmbedBuilder.create_embed(
-            title="AutoMod Log Test",
-            description=(
-                f"Test triggered by {ctx.author.mention} (`{ctx.author.id}`)\n"
-                f"Guild: `{guild_id}`\n"
-                f"Configured Channel: <#{channel_id}> (`{channel_id}`)"
-            ),
-            color=Colors.primary,
-        )
-
-        sent = await self.send_automod_log(guild, embed)
-        if sent:
-            await ctx.reply(f"Test sent to <#{channel_id}>.")
-        else:
-            await ctx.reply(
-                f"Test failed for <#{channel_id}>. Turn on `DEBUG=true` and check `[AutoMod]` logs for details."
-            )
-
-    
                                                                                  
 
     @Cog.listener()
