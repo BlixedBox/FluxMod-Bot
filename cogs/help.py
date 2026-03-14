@@ -15,20 +15,19 @@ class HelpCog(Cog):
             prefix = "fm!"
 
         embed_help = EmbedBuilder.build_embed(
-            "FluxMod Command Help",
-            "Current commands available in this bot.",
+            "FluxMod Command List",
+            f"All commands use the prefix `{prefix}`.",
             Colors.primary,
         )
 
         embed_help.add_field(
-            name="AutoMod Configuration",
-            value=("For Automod configuration, please visit the dashboard at [https://fluxmod.app](https://fluxmod.app)"),
-            inline=False,
-        )
-
-        embed_help.add_field(
-            name="AutoMod Status",
-            value=("For Automod status, please visit the dashboard at [https://fluxmod.app](https://fluxmod.app)"),
+            name="AutoMod Rules (Dashboard)",
+            value=(
+                "AutoMod rules are managed via the dashboard at [https://fluxmod.app](https://fluxmod.app).\n"
+                "Each rule has an **Action** (warn / delete / timeout / kick / ban / no_action), "
+                "a configurable **Timeout Duration**, and optional **Offense Escalation** "
+                "(1st violation = warn, repeat = timeout)."
+            ),
             inline=False,
         )
 
@@ -36,9 +35,28 @@ class HelpCog(Cog):
             name="Warning System",
             value=(
                 f"`{prefix}warnings <@user|user_id>`\n"
-                "View warnings for a user.\n\n"
+                "View all recorded warnings for a user.\n\n"
                 f"`{prefix}delwarn <@user|user_id> <index>`\n"
-                "Delete one warning by index."
+                "Delete one warning by its index number."
+            ),
+            inline=False,
+        )
+
+        embed_help.add_field(
+            name="Configuration (Dashboard)",
+            value=(
+                "Guild settings — log channels, exempt roles/channels/users, Anti-Spam, Anti-Raid, "
+                "and Anti-Nuke thresholds — are all configured from the dashboard."
+            ),
+            inline=False,
+        )
+
+        embed_help.add_field(
+            name="Useful Links",
+            value=(
+                "[Dashboard](https://fluxmod.app)  •  "
+                "[Invite Bot](https://web.fluxer.app/oauth2/authorize?client_id=1475487256413421606&scope=bot&permissions=4504699407788166)  •  "
+                "[Support Server](https://fluxer.gg/cTPTpEsu)"
             ),
             inline=False,
         )
