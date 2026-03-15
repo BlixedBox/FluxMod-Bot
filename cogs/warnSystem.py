@@ -7,6 +7,7 @@ from utils.resolvers import resolve_user_id
 from utils.fluxer_user import FluxerUser
 from utils.datawrapper import DataWrapper
 from utils.delete_after import delete_after
+from utils.embed_builder import EmbedBuilder, Colors
 
 class WarnSystemCog(Cog):
     def __init__(self, bot: fluxer.Bot):
@@ -14,8 +15,8 @@ class WarnSystemCog(Cog):
         self.bot = bot
         self.datawrapper = DataWrapper()
 
-    def _build_embed(self, title: str, description: str, color: int = 0x5865F2):
-        embed = fluxer.Embed(title=title, description=description, color=color)
+    def _build_embed(self, title: str, description: str, color: int = Colors.primary):
+        embed = EmbedBuilder.build_embed(title, description, color)
         embed.set_footer(text="FluxMod Moderation System")
         return embed
 
@@ -54,7 +55,7 @@ class WarnSystemCog(Cog):
             embed=self._build_embed(
                 "Missing Permission",
                 f"You need `{label}` to use this command.",
-                0xFF0000,
+                Colors.error,
             )
         )
         await delete_after(warning_message, 10)
@@ -105,7 +106,7 @@ class WarnSystemCog(Cog):
         guild_id = ctx.guild.id
         user_id = resolve_user_id(member)
         if user_id is None:
-            warning_message = await ctx.reply(embed=self._build_embed("Invalid User", "Use a mention or user ID.", 0xFF0000))
+            warning_message = await ctx.reply(embed=self._build_embed("Invalid User", "Use a mention or user ID.", Colors.error))
             await delete_after(warning_message, 10)
             return
 
@@ -116,9 +117,9 @@ class WarnSystemCog(Cog):
         ]
 
         if warning_list:
-            await ctx.reply(embed=self._build_embed(f"Warnings for <@{user_id}>", "\n".join(warning_list), 0xFFFF00))
+            await ctx.reply(embed=self._build_embed(f"Warnings for <@{user_id}>", "\n".join(warning_list), Colors.warning))
         else:
-            await ctx.reply(embed=self._build_embed("No Warnings Found", f"No warnings found for <@{user_id}>.", 0x32CD32))
+            await ctx.reply(embed=self._build_embed("No Warnings Found", f"No warnings found for <@{user_id}>.", Colors.success))
 
 
     @Cog.command(name="delwarn")
@@ -129,16 +130,16 @@ class WarnSystemCog(Cog):
         guild_id = ctx.guild.id
         user_id = resolve_user_id(member)
         if user_id is None:
-            warning_message = await ctx.reply(embed=self._build_embed("Invalid User", "Use a mention or user ID.", 0xFF0000))
+            warning_message = await ctx.reply(embed=self._build_embed("Invalid User", "Use a mention or user ID.", 0xFF6F88))
             await delete_after(warning_message, 10)
             return
 
         deleted = await self.datawrapper.remove_warn_by_index(guild_id, user_id, index)
         if deleted:
-            confirmation_message = await ctx.reply(embed=self._build_embed("Warning Deleted", f"Deleted warning {index} for <@{user_id}>.", 0xFFA500))
+            confirmation_message = await ctx.reply(embed=self._build_embed("Warning Deleted", f"Deleted warning {index} for <@{user_id}>.", Colors.warning))
             await delete_after(confirmation_message, 15)
         else:
-            error_message = await ctx.reply(embed=self._build_embed("Invalid Warning Index", f"Invalid warning index for <@{user_id}>.", 0xFF0000))
+            error_message = await ctx.reply(embed=self._build_embed("Invalid Warning Index", f"Invalid warning index for <@{user_id}>.", Colors.error))
             await delete_after(error_message, 10)
 
 

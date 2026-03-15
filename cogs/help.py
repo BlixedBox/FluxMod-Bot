@@ -1,5 +1,6 @@
 import fluxer
 from fluxer import Cog
+from utils.embed_builder import EmbedBuilder, Colors
 
 
 class HelpCog(Cog):
@@ -13,40 +14,19 @@ class HelpCog(Cog):
         if not isinstance(prefix, str) or not prefix:
             prefix = "fm!"
 
-        embed_help = fluxer.Embed(
-            title="FluxMod Command Help",
-            description="Current commands available in this bot.",
-            color=0x00BFFF,
+        embed_help = EmbedBuilder.build_embed(
+            "FluxMod Command List",
+            f"All commands use the prefix `{prefix}`.",
+            Colors.primary,
         )
 
         embed_help.add_field(
-            name="AutoMod Configuration",
+            name="AutoMod Rules (Dashboard)",
             value=(
-                f"`{prefix}set_automod_logs <#channel|channel_id>`\n"
-                "Set the AutoMod log channel.\n\n"
-                f"`{prefix}set_exempt_channels <#ch1>, <#ch2>, ...`\n"
-                "Set channels that bypass AutoMod checks.\n\n"
-                f"`{prefix}set_exempt_roles <@&role1>, <@&role2>, ...`\n"
-                "Set roles that bypass AutoMod checks.\n\n"
-                f"`{prefix}set_keywords <word1, word2, ...>`\n"
-                "Set blocked keyword patterns (`*` wildcard supported).\n\n"
-                f"`{prefix}set_allowed_keywords <word1, word2, ...>`\n"
-                "Set allowed keyword patterns that override blocked matches.\n\n"
-                f"`{prefix}set_regex_patterns <pattern1, pattern2, ...>`\n"
-                "Set blocked regex patterns.\n\n"
-                f"`{prefix}set_exempt_users <@user1>, <@user2>, ...`\n"
-                "Set users that bypass AutoMod checks."
-            ),
-            inline=False,
-        )
-
-        embed_help.add_field(
-            name="AutoMod Status",
-            value=(
-                f"`{prefix}toggle_automod`\n"
-                "Enable or disable AutoMod for this server.\n\n"
-                f"`{prefix}view_automod_rules`\n"
-                "View current AutoMod settings and active values."
+                "AutoMod rules are managed via the dashboard at [https://fluxmod.app](https://fluxmod.app).\n"
+                "Each rule has an **Action** (warn / delete / timeout / kick / ban / no_action), "
+                "a configurable **Timeout Duration**, and optional **Offense Escalation** "
+                "(1st violation = warn, repeat = timeout)."
             ),
             inline=False,
         )
@@ -55,9 +35,28 @@ class HelpCog(Cog):
             name="Warning System",
             value=(
                 f"`{prefix}warnings <@user|user_id>`\n"
-                "View warnings for a user.\n\n"
+                "View all recorded warnings for a user.\n\n"
                 f"`{prefix}delwarn <@user|user_id> <index>`\n"
-                "Delete one warning by index."
+                "Delete one warning by its index number."
+            ),
+            inline=False,
+        )
+
+        embed_help.add_field(
+            name="Configuration (Dashboard)",
+            value=(
+                "Guild settings — log channels, exempt roles/channels/users, Anti-Spam, Anti-Raid, "
+                "and Anti-Nuke thresholds — are all configured from the dashboard."
+            ),
+            inline=False,
+        )
+
+        embed_help.add_field(
+            name="Useful Links",
+            value=(
+                "[Dashboard](https://fluxmod.app)  •  "
+                "[Invite Bot](https://web.fluxer.app/oauth2/authorize?client_id=1475487256413421606&scope=bot&permissions=4504699407788166)  •  "
+                "[Support Server](https://fluxer.gg/cTPTpEsu)"
             ),
             inline=False,
         )

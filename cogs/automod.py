@@ -1,12 +1,14 @@
 import fluxer
 import re
 import asyncio
+import os
 from typing import Any
 
-from utils.embed_builder import EmbedBuilder
+from utils.embed_builder import EmbedBuilder, Colors
 from utils.datawrapper import DataWrapper
 from utils.delete_after import delete_after
 from utils.log import log
+from utils.timeout import FluxerTimeout
 from fluxer import Cog
 
 
@@ -16,6 +18,11 @@ class AutoModCog(Cog):
         super().__init__(bot)
         self.bot = bot
         self.datawrapper = DataWrapper()
+        # Tracks per-(guild, user, rule) offense counts for escalation.
+        # Resets when the bot restarts; that is intentional / lightweight.
+        self._offense_counts: dict[tuple, int] = {}
+        # Tracks the timestamp of the last offense per key (for reset window).
+        self._offense_timestamps: dict[tuple, float] = {}
 
     @staticmethod
     def _compile_wildcard_pattern(pattern: str):
@@ -361,40 +368,6 @@ class AutoModCog(Cog):
             pass
 
         return False
-
-    @Cog.command(name="test")
-    async def test_automod_log(self, ctx: fluxer.Message):
-        """Send a test message to the configured AutoMod log channel."""
-        guild = getattr(ctx, "guild", None)
-        guild_id = getattr(guild, "id", None)
-        if guild_id is None or guild is None:
-            await ctx.reply("This command can only be used in a server.")
-            return
-
-        channel_id = await self._resolve_automod_log_channel_id(guild_id)
-        if not channel_id:
-            await ctx.reply("AutoMod log channel is not configured. Use `fm!set_automod_logs #channel` first.")
-            return
-
-        embed = EmbedBuilder.create_embed(
-            title="AutoMod Log Test",
-            description=(
-                f"Test triggered by {ctx.author.mention} (`{ctx.author.id}`)\n"
-                f"Guild: `{guild_id}`\n"
-                f"Configured Channel: <#{channel_id}> (`{channel_id}`)"
-            ),
-            color=0x00AAFF,
-        )
-
-        sent = await self.send_automod_log(guild, embed)
-        if sent:
-            await ctx.reply(f"Test sent to <#{channel_id}>.")
-        else:
-            await ctx.reply(
-                f"Test failed for <#{channel_id}>. Turn on `DEBUG=true` and check `[AutoMod]` logs for details."
-            )
-
-    
                                                                                  
 
     @Cog.listener()
@@ -459,36 +432,211 @@ class AutoModCog(Cog):
 
             channel = message.channel
             guild = message.guild
-            delete_status = "log-only-low-severity" if is_low_severity else "deleted"
+            raw_user_id = getattr(message.author, "id", None)
+            try:
+                user_id: int | None = int(raw_user_id) if raw_user_id is not None else None
+            except (TypeError, ValueError):
+                user_id = None
 
-            if not is_low_severity:
+            # --- Resolve effective action (with escalation support) ---
+            rule_action = str(rule.get("action", "delete")).lower()
+            try:
+                timeout_duration_mins = int(rule.get("timeout_duration", 10))
+                if timeout_duration_mins < 1:
+                    timeout_duration_mins = 10
+            except Exception:
+                timeout_duration_mins = 10
+
+            escalation_enabled = bool(rule.get("escalation_enabled", False))
+            try:
+                escalation_warn_threshold = int(rule.get("escalation_warn_threshold", 1))
+                if escalation_warn_threshold < 1:
+                    escalation_warn_threshold = 1
+            except Exception:
+                escalation_warn_threshold = 1
+
+            escalation_action = str(rule.get("escalation_action", "timeout")).lower()
+            if escalation_action not in ("timeout", "kick", "ban"):
+                escalation_action = "timeout"
+
+            try:
+                escalation_timeout_mins = int(rule.get("escalation_timeout_duration", 10))
+                if escalation_timeout_mins < 1:
+                    escalation_timeout_mins = 10
+            except Exception:
+                escalation_timeout_mins = 10
+
+            try:
+                escalation_reset_minutes = int(rule.get("escalation_reset_minutes", 0))
+                if escalation_reset_minutes < 0:
+                    escalation_reset_minutes = 0
+            except Exception:
+                escalation_reset_minutes = 0
+
+            if escalation_enabled and user_id is not None:
+                import time
+                rule_key = str(rule.get("id") or rule.get("name", ""))
+                offense_key = (guild_id, str(user_id), rule_key)
+
+                # Reset offense count if the reset window has elapsed.
+                if escalation_reset_minutes > 0:
+                    last_ts = self._offense_timestamps.get(offense_key, 0.0)
+                    if time.time() - last_ts >= escalation_reset_minutes * 60:
+                        self._offense_counts.pop(offense_key, None)
+
+                offense_count = self._offense_counts.get(offense_key, 0) + 1
+                self._offense_counts[offense_key] = offense_count
+                if escalation_reset_minutes > 0:
+                    self._offense_timestamps[offense_key] = time.time()
+
+                if offense_count <= escalation_warn_threshold:
+                    effective_action = "warn"
+                else:
+                    effective_action = escalation_action
+                    if escalation_action == "timeout":
+                        timeout_duration_mins = escalation_timeout_mins
+
+                log(
+                    f"[AutoMod] Escalation guild={guild_id} user={user_id} rule={rule_key} "
+                    f"offense={offense_count} threshold={escalation_warn_threshold} action={effective_action}",
+                    "debug",
+                )
+            else:
+                effective_action = rule_action
+
+            # --- Delete the message (unless no_action or low severity) ---
+            delete_status = "not-deleted"
+            if is_low_severity or effective_action == "no_action":
+                delete_status = "log-only"
+                log(
+                    f"[AutoMod] Low severity / no_action – skipping delete guild={guild_id} user={user_id} rule={matched_rule_name}",
+                    "debug",
+                )
+            else:
                 try:
                     await message.delete()
+                    delete_status = "deleted"
                     log(
                         f"[AutoMod] Deleted message guild={guild_id} user={getattr(message.author, 'id', 'unknown')} reason={reason}",
                         "debug",
                     )
-                    if channel is not None:
-                        warning_message = await channel.send(
-                            embed=EmbedBuilder.error_embed(
-                                "Message Deleted",
-                                f"{message.author.mention}, your message contained prohibited content and was removed."
-                            )
-                        )
-                        asyncio.create_task(delete_after(warning_message, 5))
                 except fluxer.Forbidden:
                     delete_status = "delete-forbidden"
                     log(f"[AutoMod] Delete failed: forbidden guild={guild_id}", "debug")
                 except fluxer.NotFound:
                     delete_status = "delete-not-found"
                     log(f"[AutoMod] Delete failed: message not found guild={guild_id}", "debug")
-            else:
-                log(
-                    f"[AutoMod] Low severity violation logged only guild={guild_id} user={getattr(message.author, 'id', 'unknown')} rule={matched_rule_name}",
-                    "debug",
-                )
 
-            # Always attempt to write a mod log even when deletion fails.
+            # --- Apply the enforcement action ---
+            action_status = effective_action
+
+            if effective_action == "warn":
+                # Record warn in database and notify in channel.
+                try:
+                    bot_id = getattr(getattr(self.bot, "user", None), "id", 0) or 0
+                    if user_id is not None:
+                        await self.datawrapper.add_warn(
+                            guild_id,
+                            user_id,
+                            int(bot_id),
+                            f"AutoMod: {matched_rule_name}",
+                        )
+                    else:
+                        log(
+                            f"[AutoMod] Warn DB write skipped guild={guild_id}: missing user id",
+                            "debug",
+                        )
+                except Exception as exc:
+                    log(f"[AutoMod] Warn DB write failed guild={guild_id}: {exc}", "error")
+
+                if channel is not None and not is_low_severity:
+                    try:
+                        warn_msg = await channel.send(
+                            embed=EmbedBuilder.error_embed(
+                                "Warning Issued",
+                                f"{message.author.mention}, your message violated the **{matched_rule_name}** rule and has been removed. "
+                                "This warning has been recorded.",
+                            )
+                        )
+                        asyncio.create_task(delete_after(warn_msg, 8))
+                    except Exception:
+                        pass
+
+            elif effective_action == "timeout":
+                # Apply a communication timeout via the Fluxer REST API.
+                try:
+                    token = os.getenv("TOKEN", "")
+                    if token and user_id is not None:
+                        fx_timeout = FluxerTimeout(token)
+                        await fx_timeout.timeout_member(
+                            str(guild_id),
+                            str(user_id),
+                            duration_seconds=timeout_duration_mins * 60,
+                            reason=f"AutoMod: {matched_rule_name}",
+                        )
+                        action_status = f"timeout-{timeout_duration_mins}m"
+                        log(
+                            f"[AutoMod] Timeout applied guild={guild_id} user={user_id} duration={timeout_duration_mins}m",
+                            "debug",
+                        )
+                        if channel is not None:
+                            try:
+                                to_msg = await channel.send(
+                                    embed=EmbedBuilder.error_embed(
+                                        "Timeout Applied",
+                                        f"{message.author.mention}, your message violated the **{matched_rule_name}** rule. "
+                                        f"You have been timed out for **{timeout_duration_mins} minute(s)**.",
+                                    )
+                                )
+                                asyncio.create_task(delete_after(to_msg, 8))
+                            except Exception:
+                                pass
+                    else:
+                        action_status = "timeout-skipped-no-token"
+                except Exception as exc:
+                    action_status = "timeout-failed"
+                    log(f"[AutoMod] Timeout failed guild={guild_id} user={user_id}: {exc}", "error")
+
+            elif effective_action == "kick":
+                try:
+                    if user_id is None:
+                        action_status = "kick-skipped-no-user-id"
+                        log(f"[AutoMod] Kick skipped guild={guild_id}: missing user id", "debug")
+                    else:
+                        await guild.kick(user_id, reason=f"AutoMod: {matched_rule_name}")
+                        action_status = "kicked"
+                        log(f"[AutoMod] Kicked user={user_id} guild={guild_id}", "debug")
+                except Exception as exc:
+                    action_status = "kick-failed"
+                    log(f"[AutoMod] Kick failed guild={guild_id} user={user_id}: {exc}", "error")
+
+            elif effective_action == "ban":
+                try:
+                    if user_id is None:
+                        action_status = "ban-skipped-no-user-id"
+                        log(f"[AutoMod] Ban skipped guild={guild_id}: missing user id", "debug")
+                    else:
+                        await guild.ban(user_id, reason=f"AutoMod: {matched_rule_name}")
+                        action_status = "banned"
+                        log(f"[AutoMod] Banned user={user_id} guild={guild_id}", "debug")
+                except Exception as exc:
+                    action_status = "ban-failed"
+                    log(f"[AutoMod] Ban failed guild={guild_id} user={user_id}: {exc}", "error")
+
+            elif effective_action == "delete" and delete_status == "deleted":
+                if channel is not None and not is_low_severity:
+                    try:
+                        del_msg = await channel.send(
+                            embed=EmbedBuilder.error_embed(
+                                "Message Deleted",
+                                f"{message.author.mention}, your message contained prohibited content and was removed.",
+                            )
+                        )
+                        asyncio.create_task(delete_after(del_msg, 5))
+                    except Exception:
+                        pass
+
+            # --- Mod log ---
             if channel is not None and guild is not None:
                 embed = EmbedBuilder.create_embed(
                     title="AutoMod Violation",
@@ -501,11 +649,11 @@ class AutoModCog(Cog):
                         f"**Matched Pattern:** `{matched_pattern or 'N/A'}`\n"
                         f"**Matched Text:** `{matched_text or 'N/A'}`\n"
                         f"**Reason:** {reason}\n"
-                        f"**Action:** {delete_status}\n"
+                        f"**Action:** {action_status} (msg: {delete_status})\n"
                         f"**Content:** {highlighted_content or message.content}\n"
                         f"**Time:** <t:{int(message.created_at.timestamp())}:F>"
                     ),
-                    color=0xFF0000,
+                    color=Colors.error,
                 )
                 avatar = getattr(message.author, "display_avatar", None)
                 avatar_url = getattr(avatar, "url", None)

@@ -6,6 +6,7 @@ import asyncio
 from fluxer import Cog
 from utils.log import log
 from utils.datawrapper import DataWrapper
+from utils.embed_builder import EmbedBuilder, Colors
 from datetime import datetime, timedelta, timezone
 from typing import Awaitable, Callable, cast
 
@@ -103,15 +104,15 @@ class HelperCog(Cog):
                         safe_member_id = getattr(member_user, "id", member_id)
                         safe_member_mention = getattr(member_user, "mention", f"<@{safe_member_id}>")
 
-                        embed = fluxer.Embed(
-                            title="🗑️ Warning Auto-Deleted",
-                            description=(
+                        embed = EmbedBuilder.build_embed(
+                            "🗑️ Warning Auto-Deleted",
+                            (
                                 f"**User:** {safe_member_mention} (`{safe_member_id}`)\n"
                                 f"**Reason:** Warning expired (30+ days old)\n"
                                 f"**Removed:** `{diff}` warning(s)\n"
                                 f"**Time:** <t:{int(fluxer.utils.utcnow().timestamp())}:F>"
                             ),
-                            color=0xFF4500,
+                            Colors.error,
                         )
 
                         avatar = getattr(member_user, "display_avatar", None)

@@ -36,6 +36,41 @@ def _normalize_rule(rule: Dict[str, Any]) -> Dict[str, Any]:
     except Exception:
         severity = 2
 
+    try:
+        timeout_duration = int(rule.get("timeout_duration", 10))
+        if timeout_duration < 1:
+            timeout_duration = 10
+    except Exception:
+        timeout_duration = 10
+
+    try:
+        escalation_timeout_duration = int(rule.get("escalation_timeout_duration", 10))
+        if escalation_timeout_duration < 1:
+            escalation_timeout_duration = 10
+    except Exception:
+        escalation_timeout_duration = 10
+
+    escalation_enabled = bool(rule.get("escalation_enabled", False))
+
+    try:
+        escalation_warn_threshold = int(rule.get("escalation_warn_threshold", 1))
+        if escalation_warn_threshold < 1:
+            escalation_warn_threshold = 1
+    except Exception:
+        escalation_warn_threshold = 1
+
+    _valid_escalation_actions = {"timeout", "kick", "ban"}
+    escalation_action = str(rule.get("escalation_action", "timeout")).lower()
+    if escalation_action not in _valid_escalation_actions:
+        escalation_action = "timeout"
+
+    try:
+        escalation_reset_minutes = int(rule.get("escalation_reset_minutes", 0))
+        if escalation_reset_minutes < 0:
+            escalation_reset_minutes = 0
+    except Exception:
+        escalation_reset_minutes = 0
+
     return {
         "id": str(rule.get("id") or uuid.uuid4()),
         "name": rule_name,
@@ -51,6 +86,12 @@ def _normalize_rule(rule: Dict[str, Any]) -> Dict[str, Any]:
         "exempt_roles": exempt_roles,
         "exempt_channels": exempt_channels,
         "exempt_users": exempt_users,
+        "timeout_duration": timeout_duration,
+        "escalation_enabled": escalation_enabled,
+        "escalation_warn_threshold": escalation_warn_threshold,
+        "escalation_action": escalation_action,
+        "escalation_timeout_duration": escalation_timeout_duration,
+        "escalation_reset_minutes": escalation_reset_minutes,
     }
 
 
