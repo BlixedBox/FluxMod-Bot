@@ -88,5 +88,12 @@ def get_log_channel_id(guild_id: int) -> int | None:
 
     command_settings = guild.get("command_settings", {})
     channel_id = command_settings.get("log_channel_id")
+    if isinstance(channel_id, int):
+        return channel_id
 
-    return channel_id if isinstance(channel_id, int) else None
+    if isinstance(channel_id, str):
+        normalized = channel_id.strip()
+        if normalized.isdigit():
+            return int(normalized)
+
+    return None
